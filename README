@@ -1,0 +1,5 @@
+The central idea is a stream function, i.e. unit -> 'a
+This is just a package for manipulating them
+
+TODO this should probably be integrated with generators/iterators
+
