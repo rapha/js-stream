@@ -16,12 +16,4 @@ e.g.
 
     var stream = days();
 
-Out of the box, a stream only has one method: next. This package adds:
-
-    shift, add, zip and interleave
-
-to stream instances, and the globally accessible
-
-    Stream.unfold
-
-method, which provides a simple way of building infinite streams.
+Out of the box, a stream only has one method: `next`. This package adds `shift`, `add`, `zip` and `interleave` to stream instances, and the globally accessible `Stream.unfold` method, which provides a simple way to build infinite streams.
