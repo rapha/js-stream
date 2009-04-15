@@ -1,19 +1,19 @@
 var Stream = (function(){yield 1})().__proto__.constructor
 
 Stream.unfold = function(func) {
-  return function(start) {
-    var prev = start;
+  return function(seed) {
+    var arg = seed;
     return (function() {
       while (true) {
-        var result = func(prev);
-        prev = result[1];
+        var result = func(arg);
+        arg = result[1];
         yield result[0];
       }
     })()
   }
 }
 
-Stream.prototype.take = function (n) {
+Stream.prototype.take = function(n) {
   var list = new Array(n);
   for (var i = 0; i < n; i += 1) {
     list[i] = this.next();
@@ -38,7 +38,7 @@ Stream.prototype.add = function() {
   return (function() {
     while (true) {
       var sum = 0;
-      iters.forEach(function(iter) { sum += iter.next() }, 0);
+      iters.forEach(function(iter) { sum += iter.next() });
       yield sum;
     }
   })()
