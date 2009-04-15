@@ -1,4 +1,4 @@
-#!/usr/bin/env rhino
+#!/usr/bin/env rhino -version 170
 
 load('stream.js')
 
@@ -29,7 +29,7 @@ assertEquals([4,16,256], shift(3, square(4)));
 assertEquals([2,6,18], shift(3, triple(2)));
 assertEquals([54,162,486], function() { var stream = triple(2); shift(3, stream); return shift(3, stream) }() );
 
-assertEquals(["#!/usr/bin/env rhino", ""], shift(2, lines("test.js")));
+assertEquals(["#!/usr/bin/env rhino -version 170", ""], shift(2, lines("test.js")));
 
 assertEquals([5,5,5], shift(3, add(all(3), all(2))));
 assertEquals([3,2,3,2,3,2], shift(6, interleave(all(3), all(2))));
@@ -39,3 +39,10 @@ assertEquals([1,4,2,5,3,6], shift(6, interleave(from(1), from(4))));
 var zipped = shift(2, Stream.Combine.zip(from(1), all('a')));
 assertEquals([1,'a'], zipped[0]);
 assertEquals([2,'a'], zipped[1]);
+
+function days() {
+  var it = (function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; })()
+  return function() { return it.next(); }
+}
+
+assertEquals(["mon", "tue", "wed"], shift(3, days()));
