@@ -3,46 +3,43 @@
 load('stream.js')
 
 // simple stream
-var one = function() { return 1 }
+var one = (function() { while (true) yield 1 })()
 
 // some stream builders
-var all = function(x) { return function () { return x } }
-var from = Stream.Build.unfold(function(x) { return [x, x + 1] });
-var square = Stream.Build.unfold(function(x) { return [x, x * x] });
-var triple = Stream.Build.unfold(function(x) { return [x, x * 3] });
+var all = function(x) { return (function () { while (true) yield x })() }
+var from = Stream.unfold(function(x) { return [x, x + 1] });
+var square = Stream.unfold(function(x) { return [x, x * x] });
+var triple = Stream.unfold(function(x) { return [x, x * 3] });
 var lines = function(filename) {
   var reader = new java.io.BufferedReader(new java.io.FileReader(filename));
-  return function() {
-    return reader.readLine();
-  }
+  return (function() {
+    while (true) 
+      yield reader.readLine();
+  })()
 }
 
 // tests
 var assertEquals = org.junit.Assert.assertEquals;
-var shift = Stream.shift, add = Stream.Combine.add, interleave = Stream.Combine.interleave;
 
-assertEquals([1,1,1], shift(3, one));
-assertEquals([1,1,1], shift(3, one));
-assertEquals([3,3,3,3], shift(4, all(3)));
-assertEquals([1,2,3], shift(3, from(1)));
-assertEquals([4,16,256], shift(3, square(4)));
-assertEquals([2,6,18], shift(3, triple(2)));
-assertEquals([54,162,486], function() { var stream = triple(2); shift(3, stream); return shift(3, stream) }() );
+assertEquals([1,1,1], one.shift(3));
+assertEquals([3,3,3], all(3).shift(3));
+assertEquals([1,2,3], from(1).shift(3));
+assertEquals([4,16,256], square(4).shift(3));
+assertEquals([2,6,18], triple(2).shift(3));
+assertEquals([54,162,486], (function() { var iter = triple(2); iter.shift(3); return iter.shift(3); })() );
 
-assertEquals(["#!/usr/bin/env rhino -version 170", ""], shift(2, lines("test.js")));
+assertEquals(["#!/usr/bin/env rhino -version 170", ""], lines("test.js").shift(2));
 
-assertEquals([5,5,5], shift(3, add(all(3), all(2))));
-assertEquals([3,2,3,2,3,2], shift(6, interleave(all(3), all(2))));
-assertEquals([1,4,2,5,3,6], shift(6, interleave(from(1), from(4))));
-assertEquals([1,4,2,5,3,6], shift(6, interleave(from(1), from(4))));
+assertEquals([5,5,5], all(3).add(all(2)).shift(3));
+assertEquals([3,2,3,2], all(3).interleave(all(2)).shift(4));
+assertEquals([1,4,2,5], from(1).interleave(from(4)).shift(4));
 
-var zipped = shift(2, Stream.Combine.zip(from(1), all('a')));
+var zipped = from(1).zip(all('a')).shift(2); 
 assertEquals([1,'a'], zipped[0]);
 assertEquals([2,'a'], zipped[1]);
 
 function days() {
-  var it = (function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; })()
-  return function() { return it.next(); }
+  return (function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; })()
 }
 
-assertEquals(["mon", "tue", "wed"], shift(3, days()));
+assertEquals(["mon", "tue", "wed"], days().shift(3));

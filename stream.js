@@ -1,51 +1,56 @@
-var Stream = {
+var Stream = (function(){yield 1})().__proto__.constructor
 
-  shift : function(n, stream) {
-    var list = new Array(n);
-    for (var i = 0; i < n; i += 1) {
-      list[i] = stream();
-    }
-    return list;
-  },
-
-  Combine : {
-    interleave : function() {
-      var streams = arguments;
-      var i = 0;
-      return function() {
-        return streams[i++ % streams.length]();
+Stream.unfold = function(func) {
+  return function(start) {
+    var prev = start;
+    return (function() {
+      while (true) {
+        var result = func(prev);
+        prev = result[1];
+        yield result[0];
       }
-    },
-
-    add : function() {
-      var streams = Array.prototype.slice.call(arguments, 0);
-      return function() {
-        var sum = 0;
-        streams.forEach(function(stream) { sum += stream() }, 0);
-        return sum;
-      }
-    },
-
-    zip : function() {
-      var streams = Array.prototype.slice.call(arguments, 0);
-      return function() {
-        return streams.map(function(stream) { return stream() });
-      }
-    }
-
-  },
-
-  Build : {
-    unfold : function(func) {
-      return function(start) {
-        var prev = start;
-        return function() {
-          var result = func(prev);
-          prev = result[1];
-          return result[0];
-        }
-      }
-    }
+    })()
   }
 }
+
+Stream.prototype.shift = function (n) {
+  var list = new Array(n);
+  for (var i = 0; i < n; i += 1) {
+    list[i] = this.next();
+  }
+  return list;
+}
+
+Stream.prototype.interleave = function() {
+  var iters = [this];
+  Array.prototype.push.apply(iters, arguments);
+  var i = 0;
+  return (function() {
+    while (true) 
+      yield iters[i++ % iters.length].next();
+  })()
+}
+
+Stream.prototype.add = function() {
+  var iters = [this];
+  Array.prototype.push.apply(iters, arguments);
+  var self = this;
+  return (function() {
+    while (true) {
+      var sum = 0;
+      iters.forEach(function(iter) { sum += iter.next() }, 0);
+      yield sum;
+    }
+  })()
+},
+
+Stream.prototype.zip = function() {
+  var iters = [this];
+  Array.prototype.push.apply(iters, arguments);
+  return (function() {
+    while (true)
+      yield iters.map(function(iter) { return iter.next() });
+  })()
+}
+
 
