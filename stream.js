@@ -13,7 +13,7 @@ Stream.unfold = function(func) {
   }
 }
 
-Stream.prototype.shift = function (n) {
+Stream.prototype.take = function (n) {
   var list = new Array(n);
   for (var i = 0; i < n; i += 1) {
     list[i] = this.next();
