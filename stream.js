@@ -26,19 +26,16 @@ Stream.prototype.skip = function(n) {
 }
 
 Stream.prototype.interleave = function() {
-  var iters = [this];
-  Array.prototype.push.apply(iters, arguments);
-  var i = 0;
+  var iters = Array.prototype.concat.apply([this], arguments);
   return (function() {
-    while (true) 
-      yield iters[i++ % iters.length].next();
+    for (var i = 0; true; i++) {
+      yield iters[i % iters.length].next();
+    }
   })()
 }
 
 Stream.prototype.add = function() {
-  var iters = [this];
-  Array.prototype.push.apply(iters, arguments);
-  var self = this;
+  var iters = Array.prototype.concat.apply([this], arguments);
   return (function() {
     while (true) {
       var sum = 0;
@@ -49,8 +46,7 @@ Stream.prototype.add = function() {
 },
 
 Stream.prototype.zip = function() {
-  var iters = [this];
-  Array.prototype.push.apply(iters, arguments);
+  var iters = Array.prototype.concat.apply([this], arguments);
   return (function() {
     while (true)
       yield iters.map(function(iter) { return iter.next() });
