@@ -42,8 +42,6 @@ var zipped = from(1).zip(all('a')).take(2);
     assertEquals(expected, zipped[i]);
 })
 
-function days() {
-  return (function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; })()
-}
+var days = function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; }
 
 assertEquals(["mon", "tue", "wed"], days().take(3));
