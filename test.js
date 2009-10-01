@@ -13,13 +13,28 @@ var triple = Stream.unfold(function(x) x * 3 );
 var lines = function(filename) {
   var reader = new java.io.BufferedReader(new java.io.FileReader(filename));
   return (function() {
-    while (true) 
-      yield reader.readLine();
+    for (var line = reader.readLine(); line; line = reader.readLine()) {
+      yield line;
+    }
+    reader.close();
   })()
 }
 
+var fib = (function() {
+  yield 1; yield 1;
+  var [prev, curr] = [1, 1];
+  while (true) {
+    var [prev, curr] = [curr, (prev+curr)]
+    yield curr;
+  }
+})()
+
+
+
 // tests
 var assertEquals = org.junit.Assert.assertEquals;
+
+assertEquals([1,1,2,3,5], fib.take(5))
 
 assertEquals([1,1,1], one.take(3));
 assertEquals([3,3,3], all(3).take(3));
