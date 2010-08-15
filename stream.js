@@ -10,6 +10,17 @@ Stream.unfold = function(func) {
   }
 }
 
+Stream.count = Stream.unfold(function(x) x + 1 );
+Stream.repeat = Stream.unfold(function(x) x);
+Stream.cycle = function(arr) {
+	var i = 0;
+	while (true) {
+		yield arr[i];
+		i = (i+1) % arr.length
+	}
+}
+
+
 Stream.prototype.take = function(n) {
   var list = new Array(n);
   for (var i = 0; i < n; i += 1) {
@@ -18,7 +29,7 @@ Stream.prototype.take = function(n) {
   return list;
 }
 
-Stream.prototype.skip = function(n) {
+Stream.prototype.drop = function(n) {
   for (var i = 0; i < n; i++) {
     this.next();
   }
