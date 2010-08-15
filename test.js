@@ -1,4 +1,4 @@
-#!/usr/bin/env es5
+#!/usr/bin/env rhino -version 180 -debug
 
 load('stream.js')
 
@@ -15,7 +15,7 @@ var square = Stream.unfold(function(x) x * x );
 var lines = function(filename) {
   return (function(reader) {
     for (var line = reader.readLine(); line; line = reader.readLine()) {
-      yield line;
+      yield String(line);
     }
     reader.close();
   })(new java.io.BufferedReader(new java.io.FileReader(filename)))
@@ -32,7 +32,9 @@ var fib = (function() {
 
 
 var begins = function(stream, arr) {
-  org.junit.Assert.assertEquals(arr, stream.take(arr.length));
+	var expected = arr.toSource(),
+			actual = stream.take(arr.length).toSource();
+	if (expected !== actual) throw 'Expected '+expected+' but was '+actual+'.'
 }
 
 begins(fib, [1,1,2,3,5])
@@ -53,10 +55,7 @@ begins(all(3).add(all(2)), [5,5,5]);
 begins(all(3).interleave(all(2)), [3,2,3,2]);
 begins(from(1).interleave(from(4)), [1,4,2,5]);
 
-var actual = from(1).zip(all('a')).take(2);
-[[1,'a'], [2,'a']].forEach(function(expected, i) {
-  org.junit.Assert.assertEquals(expected, actual[i]);
-})
+begins(from(1).zip(all('a')), [[1,'a'], [2,'a']]);
 
 var days = function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; }
 
