@@ -2,11 +2,9 @@
 
 load('stream.js')
 
-// EXAMPLES
-
-// simple stream
-// some stream builders
-var stream = Stream.stream,
+var empty = Stream.empty,
+		fromArray = Stream.fromArray,
+		drain = Stream.drain,
 		unfold = Stream.unfold,
 		repeat = Stream.repeat,
 		count = Stream.count,
@@ -17,37 +15,15 @@ var stream = Stream.stream,
 		map = Stream.map,
 		filter = Stream.filter,
 		combine = Stream.combine,
-		zip = Stream.zip;
+		zip = Stream.zip,
+		concat = Stream.concat,
+		contains = Stream.contains,
+		find = Stream.find;
 
-var add = combine(function(a,b) a + b, 0);
-
-var square = function(x) { return x * x; };
-
-var doubling = unfold(function(x) x + x );
-
-var lines = function(filename) {
-	let reader = new java.io.BufferedReader(new java.io.FileReader(filename));
-	for (let line = reader.readLine(); line; line = reader.readLine()) {
-		yield String(line);
-	}
-	reader.close();
-	throw StopIteration;
-}
-
-var fib = (function() {
-  yield 1; yield 1;
-  var [prev, curr] = [1, 1];
-  while (true) {
-    var [prev, curr] = [curr, (prev+curr)]
-    yield curr;
-  }
-})()
-
+// TESTS
 
 var begins = function(stream, arr) {
-	var expected = arr.toSource(),
-			actual = take(stream)(arr.length).toSource();
-	if (expected !== actual) throw 'Expected '+expected+' but was '+actual+'.'
+	equals(stream.take(arr.length).drain(), arr);
 }
 
 var becomes = function(stream, arr) {
@@ -60,28 +36,119 @@ var becomes = function(stream, arr) {
 	}
 }
 
-begins(fib, [1,1,2,3,5])
+var equals = function(actual, expected) {
+	if (expected.toSource() !== actual.toSource()) {
+		throw 'Expected ' + expected.toSource() + ' but was ' + actual.toSource();
+	}
+}
 
-begins(repeat(3), [3,3,3]);
+var raises = function(code, exception) {
+	try {
+		code();
+		equals("no exception", exception);
+	} catch (e) {
+		equals(e, exception);
+	}
+}
+
+// empty
+becomes(empty(), []);
+
+// fromArray 
+becomes(fromArray([1,2,3]), [1,2,3]);
+becomes(fromArray([]), []);
+
+// drain
+equals(drain(fromArray([1,2,3])), [1,2,3]);
+equals(fromArray([1,2,3]).drain(), [1,2,3]);
+
+// unfold
+begins(unfold(function(x) x)(0), [0,0,0]);
+begins(unfold(function(x) x + x)(3), [3,6,12]);
+begins(unfold(function(){throw StopIteration})(3), []);
+
+// repeat
+begins(repeat(5), [5,5,5]);
+
+// count
 begins(count(1), [1,2,3]);
-begins((function() { var s = count(1); take(s)(1); return s})(), [2,3,4]);
-begins(doubling(3), [3,6,12]);
-begins(drop(count(1))(2), [3,4,5]);
-begins(filter(function(val) val % 2 == 0)(count(0)), [0,2,4]);
-begins(map(square)(count(1)), [1,4,9]);
-begins(map(Math.sqrt)(map(square)(count(1))), [1,2,3]);
+begins(count(4), [4,5,6]);
 
-begins(drop(lines("test.js"))(2), ["load('stream.js')"]);
+// cycle 
+begins(cycle(fromArray([1,2])), [1,2,1,2,1]);
+begins(cycle(fromArray([])), []);
+begins(fromArray([1,2]).cycle(), [1,2,1,2,1]);
 
-begins(add(repeat(3), repeat(2)), [5,5,5]);
-begins(interleave(repeat(3), repeat(2)), [3,2,3,2]);
-begins(interleave(count(1), count(4)), [1,4,2,5]);
+// take
+becomes(take(fromArray([1,2,3]), 1), [1]);
+becomes(take(fromArray([1,2,3]), 0), []);
+becomes(take(fromArray([1]), 2), [1]);
+becomes(fromArray([1]).take(2), [1]);
 
-begins(zip(count(1), repeat('a')), [[1,'a'], [2,'a']]);
+// drop
+begins(drop(fromArray([1,2,3]), 0), [1,2,3]);
+begins(drop(fromArray([1,2,3]), 1), [2,3]);
+begins(drop(fromArray([1,2,3]), 4), []);
+begins(fromArray([1,2,3]).drop(2), [3]);
 
-var days = function() { yield "mon"; yield "tue"; yield "wed"; yield "thu"; yield "fri"; }
+// interleave
+begins(interleave(count(1)), [1,2]);
+begins(interleave(repeat(1), repeat(2), repeat(3)), [1,2,3,1,2,3,1]);
+becomes(interleave(fromArray([1,2]), repeat(5)), [1,5,2,5]);
 
-begins(days(), ["mon", "tue", "wed"]);
+// map
+begins(map(count(1), function(x) x * x), [1,4,9,16]);
+begins(count(1).map(function(x) x * x), [1,4,9,16]);
 
-becomes(stream([1,2,3]), [1,2,3]);
-begins(cycle(stream([1,2,3])), [1,2,3,1,2,3,1]);
+// filter
+begins(filter(count(1), function(x) x % 2), [1,3,5,7]);
+begins(count(1).filter(function(x) x % 2), [1,3,5,7]);
+
+// combine
+begins(combine(function(a,b) a * b, 1)(count(1), repeat(4)), [4,8,12,16]);
+
+// zip
+begins(zip(count(1), count(3)), [[1,3], [2,4], [3,5]]);
+begins(zip(count(1), fromArray(['a'])), [[1,'a']]);
+begins(count(1).zip(count(3)), [[1,3], [2,4], [3,5]]);
+
+// concat
+becomes(concat(fromArray([1,2]), fromArray([3,4]), fromArray([5,6])), [1,2,3,4,5,6]);
+begins(fromArray([1,2]).concat(fromArray([3,4]), repeat(5)), [1,2,3,4,5,5]);
+
+// contains 
+equals(contains(fromArray([1,2]), 1), true)
+equals(contains(fromArray([1,2]), 3), false)
+equals(contains(fromArray([]), 3), false)
+equals(fromArray([1,2,3]).contains(3), true);
+
+// find
+let even = function(x) x % 2 === 0
+equals(find(fromArray([1,2,3,4]), even), 2);
+raises(function() find(fromArray([1,3,5]), even), "Not found");
+equals(count(1).find(even), 2);
+
+// EXAMPLES
+
+var lines = function(inputReader) {
+	let reader = new java.io.BufferedReader(inputReader);
+	for (let line = reader.readLine(); line; line = reader.readLine()) {
+		yield String(line);
+	}
+	reader.close();
+	throw StopIteration;
+}
+
+var fib = function() {
+  yield 1; yield 1;
+  var [prev, curr] = [1, 1];
+  while (true) {
+    var [prev, curr] = [curr, (prev+curr)]
+    yield curr;
+  }
+}
+
+begins(lines(new java.io.FileReader("test.js")).drop(2), ["load('stream.js')"]);
+
+begins(fib(), [1,1,2,3,5,8,13])
+

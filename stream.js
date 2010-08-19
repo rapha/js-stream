@@ -1,94 +1,182 @@
-var Stream = Object.getPrototypeOf(function(){yield 1}()).constructor
+var Stream = (function() {
+	let proto = Object.getPrototypeOf(function(){yield 1}());
 
-Stream.unfold = function(func) {
-  return function(seed) {
-		for (let next = seed; true; next = func(next)) {
-			yield next;
-		}
-  }
-}
+	let empty = function() {
+		let s = (function() { yield 1; })();
+		s.next();
+		return s;
+	};
 
-Stream.count = Stream.unfold(function(x) x + 1 );
-Stream.repeat = Stream.unfold(function(x) x);
-Stream.cycle = function(stream) {
-	var vals = [];
-	try {
-		while (true) {
-			let then = stream.next();
-			vals.push(then);
-			yield then;
+	let unfold = function(func) {
+		return function(seed) {
+			for (let next = seed; true; next = func(next)) {
+				yield next;
+			}
 		}
-	} catch (e if e === StopIteration) {
-		let i = 0;
-		while (true) {
-			yield vals[i];
-			i = (i+1) % vals.length;
+	};
+
+	let count = unfold(function(x) x + 1 );
+	let repeat = unfold(function(x) x);
+
+	let cycle = function(stream) {
+		var vals = [];
+		try {
+			while (true) {
+				let then = stream.next();
+				vals.push(then);
+				yield then;
+			}
+		} catch (e if e === StopIteration) {
+			let i = 0;
+			while (true) {
+				yield vals[i];
+				i = (i+1) % vals.length;
+			}
 		}
 	}
-}
-Stream.stream = function(arr) {
-	for (var i = 0; i < arr.length; i++) {
-		yield arr[i];
-	}
-	throw StopIteration;
-}
 
-Stream.take = function(stream) {
-	return function(n) {
-		var list = new Array(n);
+	let fromArray = function(arr) {
+		for (var i = 0; i < arr.length; i++) {
+			yield arr[i];
+		}
+		throw StopIteration;
+	}
+
+	let take = function(stream, n) {
 		for (var i = 0; i < n; i += 1) {
-			list[i] = stream.next();
+			yield stream.next();
 		}
-		return list;
+		throw StopIteration;
 	}
-}
 
-Stream.drop = function(stream) {
-	return function(n) {
-		for (var i = 0; i < n; i++) {
-			stream.next();
+	let drain = function(stream) {
+		let arr = [];
+		try {
+			while (true) {
+				arr.push(stream.next());
+			}
+		} catch (e if e === StopIteration) {
+			return arr;
 		}
-		return stream;
 	}
-}
 
-Stream.interleave = function() {
-  var iters = Array.prototype.concat.apply([], arguments);
-	for (var i = 0; true; i++) {
-		yield iters[i % iters.length].next();
+	let drop = function(stream, n) {
+		try {
+			for (let i = 0; i < n; i++) {
+				stream.next();
+			}
+			return stream;
+		} catch (e if e === StopIteration) {
+			return empty();
+		}
 	}
-}
 
-Stream.zip = function() {
-  var iters = Array.prototype.concat.apply([], arguments);
-	while (true) {
-		yield iters.map(function(iter) iter.next());
+	let interleave = function() {
+		var iters = Array.concat.apply([], arguments);
+		for (var i = 0; true; i++) {
+			yield iters[i % iters.length].next();
+		}
 	}
-}
 
-Stream.combine = function(combiner, acc) {
-	return function() {
-		var args = [].concat.apply([], arguments);
-		var groups = Stream.zip.apply(null, args);
-		return Stream.map(function(values) values.reduce(combiner, acc))(groups);
+	let zip = function() {
+		var iters = Array.concat.apply([], arguments);
+		while (true) {
+			yield iters.map(function(iter) iter.next());
+		}
 	}
-}
 
-Stream.filter = function(predicate) {
-  return function(stream) {
-      while (true) {
-        var value = stream.next();
-        if (predicate(value)) {
-          yield value;
-        }
-      }
-  }
-}
+	let combine = function(combiner, acc) {
+		return function() {
+			var args = [].concat.apply([], arguments);
+			var zipped = zip.apply(null, args);
+			return map(zipped, function(values) values.reduce(combiner, acc));
+		}
+	}
 
-Stream.map = function(transform) {
-	return function(stream) {
+	let filter = function(stream, predicate) {
+		while (true) {
+			var value = stream.next();
+			if (predicate(value)) {
+				yield value;
+			}
+		}
+	}
+
+	let map = function(stream, transform) {
 		while (true) {
 			yield transform(stream.next());
 		}
 	}
-}
+
+	let concat = function() {
+		let args = [].concat.apply([], arguments);
+		for (let i = 0; i < args.length; i += 1) {
+			try {
+				while (true) {
+					yield args[i].next();
+				}
+			} catch (e if e === StopIteration) {
+				// go to next stream
+			}
+		}
+		throw StopIteration;
+	}
+
+	let contains = function(stream, item) {
+		try {
+			find(stream, function(curr) curr === item);
+			return true;
+		} catch (e if e === "Not found") {
+			return false;
+		}
+	}
+
+	let find = function(stream, predicate) {
+		try {
+			while (true) {
+				let curr = stream.next();
+				if (predicate(curr)) {
+					return curr;
+				}
+			}
+		} catch (e if e === StopIteration) {
+			throw "Not found"; // TODO what should this be?
+		}
+	}
+
+	let builders = {
+		empty: empty,
+		fromArray: fromArray,
+		count: count,
+		unfold: unfold,
+		repeat: repeat,
+		combine: combine,
+		concat: concat,
+	}
+	let methods = {
+		drain: drain,
+		cycle: cycle,
+		take: take,
+		drop: drop,
+		interleave: interleave,
+		map: map,
+		filter: filter,
+		zip: zip,
+		concat: concat,
+		contains: contains,
+		find: find,
+	}
+
+	Object.keys(methods).forEach(function(name) {
+		let method = methods[name];
+		proto[name] = function() {
+			var args = Array.prototype.concat.apply([this], arguments);
+			return method.apply(null, args);
+		}
+	});
+
+	return Object.keys(methods).reduce(function(result, name) {
+		result[name] = methods[name];
+		return result;
+	}, Object.create(builders));
+})()
