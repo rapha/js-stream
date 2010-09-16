@@ -3,16 +3,18 @@ This is a package for manipulating generator-iterators (streams) in Javascript.
 A stream is an object returned from a function which contains yield statements.
 
 e.g.
+    version('180');
+    load('stream.js');
+    
     var readme = (function(reader) {
       for (var line = reader.readLine(); line; line = reader.readLine()) {
         yield line;
       }
-      reader.close()
+      reader.close();
+      throw StopIteration;
     })(new java.io.BufferedReader(new java.io.FileReader('README.md')));
-
-    var countFrom = Stream.unfold(function(x) { return x + 1 })
-
-    countFrom(1).zip(readme).take(15).forEach(function(pair) print(pair));
+    
+		Stream.count(1).zip(readme).drain().forEach(function(pair) { print(pair); });
 
 Out of the box, a stream has the method: `next`.
 
