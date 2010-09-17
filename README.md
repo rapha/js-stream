@@ -1,9 +1,9 @@
-This is a package for manipulating generator-iterators (streams) in Javascript.
+This is a package for manipulating [generators and iterators](https://developer.mozilla.org/en/JavaScript/Guide/Iterators_and_Generators) in Javascript 1.7+.
 
-A stream is an object returned from a function which contains yield statements.
+A generator is an object returned from a function which contains yield statements.
 
-e.g.
-    version('180');
+e.g. in Rhino
+		version(180);
     load('stream.js');
     
     var readme = (function(reader) {
@@ -15,7 +15,3 @@ e.g.
     })(new java.io.BufferedReader(new java.io.FileReader('README.md')));
     
 		Stream.count(1).zip(readme).drain().forEach(function(pair) { print(pair); });
-
-Out of the box, a stream has the method: `next`.
-
-This package adds `take`, `skip`, `interleave`, `add`, `zip`, `filter` and `map` to stream instances, as well as the top-level `Stream.unfold` function, which provides a simple way to build infinite streams.
