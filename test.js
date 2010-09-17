@@ -152,3 +152,5 @@ begins(lines(new java.io.FileReader("test.js")).drop(2), ["load('stream.js')"]);
 
 begins(fib(), [1,1,2,3,5,8,13])
 
+becomes(Iterator([1,2]), [[0,1], [1,2]]);
+becomes(Iterator({a:1,b:2}), [["a",1],["b",2]]);

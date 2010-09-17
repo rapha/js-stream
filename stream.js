@@ -1,5 +1,6 @@
 var Stream = (function() {
-	let proto = Object.getPrototypeOf(function(){yield 1}());
+	let generatorProto = Object.getPrototypeOf(function(){yield 1}());
+	let iteratorProto = Object.getPrototypeOf(Iterator.prototype);
 
 	let empty = function() {
 		let s = (function() { yield 1; })();
@@ -151,7 +152,6 @@ var Stream = (function() {
 		unfold: unfold,
 		repeat: repeat,
 		combine: combine,
-		concat: concat,
 	}
 	let methods = {
 		drain: drain,
@@ -168,11 +168,18 @@ var Stream = (function() {
 	}
 
 	Object.keys(methods).forEach(function(name) {
-		let method = methods[name];
-		proto[name] = function() {
+		let func = methods[name];
+		let method = function() {
 			var args = Array.prototype.concat.apply([this], arguments);
-			return method.apply(null, args);
-		}
+			return func.apply(null, args);
+		};
+		Object.defineProperty(generatorProto, name, {
+			value: method
+		});
+		Object.defineProperty(iteratorProto, name, {
+			value: method,
+			writable: true // TODO why?
+		});
 	});
 
 	return Object.keys(methods).reduce(function(result, name) {
