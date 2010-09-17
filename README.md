@@ -3,7 +3,7 @@ This is a package for manipulating [generators and iterators](https://developer.
 A generator is an object returned from a function which contains yield statements.
 
 e.g. in Rhino
-		version(180);
+    version(180);
     load('stream.js');
     
     var readme = (function(reader) {
@@ -14,4 +14,4 @@ e.g. in Rhino
       throw StopIteration;
     })(new java.io.BufferedReader(new java.io.FileReader('README.md')));
     
-		Stream.count(1).zip(readme).drain().forEach(function(pair) { print(pair); });
+    Stream.count(1).zip(readme).drain().forEach(function(pair) { print(pair); });
