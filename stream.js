@@ -1,4 +1,7 @@
 var Stream = (function() {
+	var NOT_FOUND = "Not found";
+
+
 	let generatorProto = Object.getPrototypeOf(function(){yield 1}());
 	let iteratorProto = Object.getPrototypeOf(Iterator.prototype);
 
@@ -124,24 +127,28 @@ var Stream = (function() {
 	}
 
 	let contains = function(stream, item) {
+		return some(stream, function(curr) curr === item);
+	}
+
+	let every = function(stream, predicate) {
+		return !some(stream, (function(value) !predicate(value)));
+	}
+
+	let some = function(stream, predicate) {
 		try {
-			find(stream, function(curr) curr === item);
+			find(stream, predicate);
 			return true;
-		} catch (e if e === "Not found") {
+		} catch (e if e === NOT_FOUND) {
 			return false;
 		}
 	}
 
 	let find = function(stream, predicate) {
-		try {
-			while (true) {
-				let curr = stream.next();
-				if (predicate(curr)) {
-					return curr;
-				}
-			}
-		} catch (e if e === StopIteration) {
-			throw "Not found"; // TODO what should this be?
+		var found = drain(take(filter(stream, predicate), 1));
+		if (found.length === 0) {
+			throw NOT_FOUND;
+		} else {
+			return found[0];
 		}
 	}
 
@@ -164,6 +171,8 @@ var Stream = (function() {
 		zip: zip,
 		concat: concat,
 		contains: contains,
+		some: some,
+		every: every,
 		find: find,
 	}
 

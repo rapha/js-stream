@@ -1,4 +1,4 @@
-#!/usr/bin/env rhino -version 180 -debug
+#!/usr/bin/env rhino -version 180 -debug -w
 
 load('stream.js')
 
@@ -18,6 +18,8 @@ var empty = Stream.empty,
 		zip = Stream.zip,
 		concat = Stream.concat,
 		contains = Stream.contains,
+		some = Stream.some,
+		every = Stream.every,
 		find = Stream.find;
 
 // TESTS
@@ -122,11 +124,24 @@ equals(contains(fromArray([1,2]), 3), false)
 equals(contains(fromArray([]), 3), false)
 equals(fromArray([1,2,3]).contains(3), true);
 
-// find
+// some
 let even = function(x) x % 2 === 0
-equals(find(fromArray([1,2,3,4]), even), 2);
-raises(function() find(fromArray([1,3,5]), even), "Not found");
-equals(count(1).find(even), 2);
+equals(some(fromArray([1,2,3,4]), even), true);
+equals(some(fromArray([1,3,5]), even), false);
+equals(count(1).some(even), true);
+
+// every
+equals(every(count(1).take(4), function(n) n<5), true);
+equals(count(1).take(4).every(function(n) n<5), true);
+
+// find
+equals(find(count(1), function(n) n > 3), 4);
+equals(count(1).find(function(n) n > 3), 4);
+raises(
+	function() empty().find(function(n) n > 3),
+	"Not found"
+);
+
 
 // EXAMPLES
 
